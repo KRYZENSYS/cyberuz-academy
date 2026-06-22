@@ -13,13 +13,13 @@ export async function GET() {
       prisma.user.count(),
       prisma.course.count({ where: { isPublished: true } }),
       prisma.lesson.count({ where: { isPublished: true } }),
-      prisma.userProgress.count({ where: { completed: true } }),
+      prisma.user.count({ where: { lastLoginAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }),
     ]);
 
     return NextResponse.json({
       stats: { totalUsers, totalCourses, totalLessons, activeUsers },
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json({ error: 'Server xatoligi' }, { status: 500 });
   }
 }
