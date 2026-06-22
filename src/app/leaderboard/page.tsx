@@ -19,8 +19,8 @@ export default function LeaderboardPage() {
       const res = await fetch(`/api/leaderboard?period=${filter}`);
       const data = await res.json();
       setUsers(data.users || []);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -36,13 +36,13 @@ export default function LeaderboardPage() {
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-sm hover:text-cyan-400">Dashboard</Link>
-            <span className="text-sm font-bold text-yellow-400">🏆 Reyting</span>
+            <Link href="/leaderboard" className="text-sm font-bold text-yellow-400">🏆 Reyting</Link>
           </div>
         </div>
       </nav>
 
       <div className="pt-24 pb-12 px-4 max-w-5xl mx-auto">
-        <div className="text-center mb-12 animate-fade-in">
+        <div className="text-center mb-12 fade-in">
           <h1 className="text-4xl md:text-5xl font-black mb-2">
             <span className="gradient-text">🏆</span> Reyting
           </h1>
@@ -50,73 +50,69 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="flex gap-2 justify-center mb-8">
-          {(['all', 'week', 'month'] as const).map((p) => (
+          {[{ v: 'all', l: 'Barcha vaqt' }, { v: 'week', l: 'Hafta' }, { v: 'month', l: 'Oy' }].map((f) => (
             <button
-              key={p}
-              onClick={() => setFilter(p)}
-              className={`px-5 py-2 rounded-lg font-medium transition ${
-                filter === p
+              key={f.v}
+              onClick={() => setFilter(f.v as any)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                filter === f.v
                   ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
                   : 'bg-cyber-dark text-gray-400 hover:text-white'
               }`}
             >
-              {p === 'all' ? 'Barcha vaqt' : p === 'week' ? 'Hafta' : 'Oy'}
+              {f.l}
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-12 h-12 text-cyan-400 animate-spin" />
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
           </div>
         ) : users.length === 0 ? (
-          <div className="glass-card p-12 text-center">
-            <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-500" />
-            <p className="text-gray-400">Hozircha foydalanuvchilar yo'q</p>
+          <div className="text-center py-20 text-gray-500">
+            <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>Hozircha foydalanuvchilar yo'q</p>
           </div>
         ) : (
           <>
             {/* Top 3 */}
             <div className="grid grid-cols-3 gap-4 mb-8">
               {users.slice(0, 3).map((u, i) => (
-                <div key={u.id} className={`glass-card glass-card-hover p-6 text-center ${i === 0 ? 'border-yellow-400/50' : i === 1 ? 'border-gray-300/50' : 'border-orange-400/50'}`}>
-                  <div className={`w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br ${
-                    i === 0 ? 'from-yellow-400 to-yellow-600' :
-                    i === 1 ? 'from-gray-300 to-gray-500' :
-                    'from-orange-400 to-orange-600'
-                  } flex items-center justify-center text-2xl font-black text-black`}>
-                    {(u.fullName || u.username)?.[0]?.toUpperCase() || '?'}
+                <div key={u.id} className={`cyber-card text-center ${i === 0 ? 'border-yellow-500/60' : i === 1 ? 'border-gray-400/60' : 'border-orange-500/60'}`}>
+                  <div className={`text-3xl mb-2 ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : 'text-orange-400'}`}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
                   </div>
-                  <div className="text-3xl mb-2">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</div>
-                  <div className="font-bold truncate">{u.fullName || u.username}</div>
-                  <div className="text-xs text-gray-400">@{u.username}</div>
-                  <div className="text-cyan-400 font-bold mt-2">{u.xp} XP</div>
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-lg font-black">
+                    {(u.fullName || u.username)?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="font-bold text-sm truncate">{u.fullName || u.username}</div>
+                  <div className="text-xs text-gray-400">Daraja {u.level}</div>
+                  <div className="text-lg font-black text-cyan-400 mt-2">{u.xp} XP</div>
                 </div>
               ))}
             </div>
 
-            {/* Other ranks */}
-            <div className="glass-card p-6">
-              <div className="space-y-3">
-                {users.slice(3).map((user, i) => (
-                  <div key={user.id} className="flex items-center gap-4 p-3 rounded-lg bg-cyber-black/50 hover:bg-cyber-black transition">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold flex-shrink-0">
-                      {(user.fullName || user.username)?.[0]?.toUpperCase() || '?'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{user.fullName || user.username}</div>
-                      <div className="text-xs text-gray-500">@{user.username} · Daraja {user.level || 1}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-yellow-400 font-bold">{user.xp} XP</div>
-                      <div className="text-xs text-gray-500">Daraja {user.level || 1}</div>
-                    </div>
-                    <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center font-bold text-cyan-400 text-sm flex-shrink-0">
-                      {i + 4}
-                    </div>
+            {/* Rest */}
+            <div className="space-y-2">
+              {users.slice(3).map((u, i) => (
+                <div key={u.id} className="cyber-card flex items-center gap-4 hover:bg-cyber-black transition">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold flex-shrink-0">
+                    {(u.fullName || u.username)?.[0]?.toUpperCase()}
                   </div>
-                ))}
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold truncate">{u.fullName || u.username}</div>
+                    <div className="text-xs text-gray-500">Daraja {u.level} • 🔥 {u.streak || 0}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-black text-cyan-400">{u.xp} XP</div>
+                    <div className="text-xs text-gray-500">Daraja {u.level}</div>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-cyan-500/20 text-cyan-400">
+                    {i + 4}
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
