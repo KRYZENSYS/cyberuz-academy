@@ -1,102 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chatWithAI } from '@/lib/ai';
-import { getCurrentUser } from '@/lib/auth';
+import { chatWithAI, analyzeVideoContent, generateQuiz } from '@/lib/ai';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { message, conversationId, lessonTitle, courseTitle, history } = body;
+    const { message, lessonId, conversationId, history } = body;
 
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Xabar matni talab qilinadi' }, { status: 400 });
+    if (!message) {
+      return NextResponse.json({ error: 'Xabar yuborilmadi' }, { status: 400 });
     }
 
-    // Get or create conversation
-    let conversation;
-    if (conversationId) {
-      conversation = await prisma.aIConversation.findUnique({
-        where: { id: conversationId },
+    // Get lesson context if provided
+    let context: any = {};
+    if (lessonId) {
+      const lesson = await prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { course: true },
       });
+      if (lesson) {
+        context = {
+          lessonTitle: lesson.title,
+          courseTitle: lesson.course?.title,
+        };
+      }
     }
 
-    if (!conversation) {
-      conversation = await prisma.aIConversation.create({
-        data: {
-          userId: user.id,
-          title: message.substring(0, 100),
-        },
-      });
-    }
-
-    // Save user message
-    await prisma.aIMessage.create({
-      data: {
-        conversationId: conversation.id,
-        role: 'user',
-        content: message,
-      },
-    });
+    if (history) context.history = history;
 
     // Get AI response
-    const aiResponse = await chatWithAI(message, {
-      lessonTitle,
-      courseTitle,
-      history,
-    });
+    const response = await chatWithAI(message, context);
 
-    // Save AI message
-    const aiMessage = await prisma.aIMessage.create({
-      data: {
-        conversationId: conversation.id,
-        role: 'assistant',
-        content: aiResponse,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      conversationId: conversation.id,
-      response: aiResponse,
-      messageId: aiMessage.id,
-    });
-  } catch (error) {
-    console.error('AI chat error:', error);
-    return NextResponse.json({ error: 'AI xatoligi' }, { status: 500 });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const conversationId = searchParams.get('conversationId');
-
-    if (conversationId) {
-      const messages = await prisma.aIMessage.findMany({
-        where: { conversationId },
-        orderBy: { createdAt: 'asc' },
+    // Save conversation if user is logged in
+    if (user) {
+      let convId = conversationId;
+      if (!convId) {
+        const conv = await prisma.aIConversation.create({
+          data: { userId: user.id, title: message.substring(0, 100) },
+        });
+        convId = conv.id;
+      }
+      await prisma.aIMessage.createMany({
+        data: [
+          { conversationId: convId, role: 'user', content: message },
+          { conversationId: convId, role: 'assistant', content: response },
+        ],
       });
-      return NextResponse.json({ messages });
     }
 
-    const conversations = await prisma.aIConversation.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: 'desc' },
-      take: 50,
-    });
-
-    return NextResponse.json({ conversations });
-  } catch (error) {
-    return NextResponse.json({ error: 'Server xatoligi' }, { status: 500 });
+    return NextResponse.json({ success: true, response, conversationId });
+  } catch (error: any) {
+    console.error('AI chat error:', error);
+    return NextResponse.json({ error: 'AI xatosi' }, { status: 500 });
   }
 }
