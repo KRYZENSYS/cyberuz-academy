@@ -1,170 +1,126 @@
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
-import { generateAccessToken, generateRefreshToken, verifyAccessToken, verifyRefreshToken, type TokenPayload } from './jwt';
+import { generateAccessToken, generateRefreshToken, verifyToken } from './jwt';
 
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12');
-
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, BCRYPT_ROUNDS);
+export interface AuthUser {
+  id: string;
+  email: string;
+  username: string;
+  fullName: string | null;
+  avatar: string | null;
+  role: string;
+  xp: number;
+  level: number;
+  streak: number;
+  emailVerified: boolean;
+  profile: any;
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
-}
-
-export interface RegisterInput {
+export async function registerUser(data: {
   email: string;
   username: string;
   password: string;
   fullName?: string;
-}
-
-export interface LoginInput {
-  email: string;
-  password: string;
-}
-
-export interface AuthResult {
-  success: boolean;
-  user?: any;
-  accessToken?: string;
-  refreshToken?: string;
-  error?: string;
-}
-
-export async function registerUser(input: RegisterInput): Promise<AuthResult> {
-  const { email, username, password, fullName } = input;
-
-  // Validate email
-  if (!isValidEmail(email)) {
-    return { success: false, error: 'Noto\'g\'ri email formati' };
-  }
-
-  // Validate password
-  if (password.length < 8) {
-    return { success: false, error: 'Parol kamida 8 belgidan iborat bo\'lishi kerak' };
-  }
-
-  // Check existing user
-  const existing = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
-  });
-
-  if (existing) {
-    if (existing.email === email) return { success: false, error: 'Bu email allaqachon ro\'yxatdan o\'tgan' };
-    if (existing.username === username) return { success: false, error: 'Bu username band' };
-  }
-
-  const hashedPassword = await hashPassword(password);
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      username,
-      password: hashedPassword,
-      fullName,
-      profile: { create: {} },
-    },
-    include: { profile: true },
-  });
-
-  const payload: TokenPayload = { userId: user.id, email: user.email, role: user.role };
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
-
-  await prisma.userSession.create({
-    data: {
-      userId: user.id,
-      token: accessToken,
-      refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
-
-  return { success: true, user, accessToken, refreshToken };
-}
-
-export async function loginUser(input: LoginInput): Promise<AuthResult> {
-  const { email, password } = input;
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { profile: true },
-  });
-
-  if (!user) {
-    return { success: false, error: 'Email yoki parol noto\'g\'ri' };
-  }
-
-  if (user.isBanned) {
-    return { success: false, error: 'Akkaunt bloklangan' };
-  }
-
-  const isValid = await verifyPassword(password, user.password);
-  if (!isValid) {
-    await prisma.loginHistory.create({
-      data: { userId: user.id, success: false, failReason: 'Invalid password' },
+}): Promise<{ success: boolean; user?: AuthUser; accessToken?: string; refreshToken?: string; error?: string }> {
+  try {
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ email: data.email }, { username: data.username }] },
     });
-    return { success: false, error: 'Email yoki parol noto\'g\'ri' };
-  }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastActiveAt: new Date() },
-  });
+    if (existing) {
+      if (existing.email === data.email) return { success: false, error: 'Bu email allaqachon ro\'yxatdan o\'tgan' };
+      return { success: false, error: 'Bu username band' };
+    }
 
-  const payload: TokenPayload = { userId: user.id, email: user.email, role: user.role };
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
+    const passwordHash = await bcrypt.hash(data.password, 12);
 
-  await prisma.userSession.create({
-    data: {
-      userId: user.id,
-      token: accessToken,
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        username: data.username,
+        fullName: data.fullName,
+        password: passwordHash,
+      },
+    });
+
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = generateRefreshToken({ userId: user.id });
+
+    await prisma.activityLog.create({
+      data: { userId: user.id, type: 'user_registered', message: `${user.username} ro'yxatdan o'tdi`, metadata: { email: user.email } },
+    });
+
+    return {
+      success: true,
+      user: {
+        id: user.id, email: user.email, username: user.username, fullName: user.fullName,
+        avatar: user.avatar, role: user.role, xp: user.xp, level: user.level,
+        streak: user.streak, emailVerified: user.emailVerified, profile: user.profile,
+      },
+      accessToken,
       refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
-
-  await prisma.loginHistory.create({
-    data: { userId: user.id, success: true },
-  });
-
-  return { success: true, user, accessToken, refreshToken };
+    };
+  } catch (error) {
+    console.error('Register error:', error);
+    return { success: false, error: 'Server xatoligi' };
+  }
 }
 
-export async function getCurrentUser(): Promise<any | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('access_token')?.value;
-  if (!token) return null;
+export async function loginUser(data: { email: string; password: string }): Promise<{ success: boolean; user?: AuthUser; accessToken?: string; refreshToken?: string; error?: string }> {
+  try {
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    if (!user || user.isBanned) return { success: false, error: 'Email yoki parol noto\'g\'ri' };
 
-  const payload = verifyAccessToken(token);
-  if (!payload) return null;
+    const valid = await bcrypt.compare(data.password, user.password);
+    if (!valid) return { success: false, error: 'Email yoki parol noto\'g\'ri' };
 
-  return prisma.user.findUnique({
-    where: { id: payload.userId },
-    include: { profile: true },
-  });
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = generateRefreshToken({ userId: user.id });
+
+    await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
+    await prisma.activityLog.create({
+      data: { userId: user.id, type: 'user_login', message: `${user.username} tizimga kirdi` },
+    });
+
+    return {
+      success: true,
+      user: {
+        id: user.id, email: user.email, username: user.username, fullName: user.fullName,
+        avatar: user.avatar, role: user.role, xp: user.xp, level: user.level,
+        streak: user.streak, emailVerified: user.emailVerified, profile: user.profile,
+      },
+      accessToken,
+      refreshToken,
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    return { success: false, error: 'Server xatoligi' };
+  }
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<string | null> {
-  const payload = verifyRefreshToken(refreshToken);
-  if (!payload) return null;
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get('access_token')?.value;
 
-  return generateAccessToken({
-    userId: payload.userId,
-    email: payload.email,
-    role: payload.role,
-  });
-}
+    if (!token) return null;
 
-export function isValidEmail(email: string): boolean {
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return re.test(email);
-}
+    const payload = verifyToken(token);
+    if (!payload) return null;
 
-export function isValidUsername(username: string): boolean {
-  const re = /^[a-zA-Z0-9_]{3,30}$/;
-  return re.test(username);
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+    });
+
+    if (!user || user.isBanned) return null;
+
+    return {
+      id: user.id, email: user.email, username: user.username, fullName: user.fullName,
+      avatar: user.avatar, role: user.role, xp: user.xp, level: user.level,
+      streak: user.streak, emailVerified: user.emailVerified, profile: user.profile,
+    };
+  } catch {
+    return null;
+  }
 }
