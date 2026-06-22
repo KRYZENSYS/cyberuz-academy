@@ -18,18 +18,13 @@ export default function AITeacherPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  };
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
-
     const userMsg = input.trim();
     setInput('');
     setMessages((prev) => [...prev, { role: 'user', content: userMsg }]);
@@ -45,7 +40,6 @@ export default function AITeacherPage() {
           history: messages.slice(-10),
         }),
       });
-
       const data = await res.json();
       if (res.ok) {
         setConversationId(data.conversationId);
@@ -84,13 +78,13 @@ export default function AITeacherPage() {
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-sm hover:text-cyan-400">Dashboard</Link>
-            <span className="text-sm font-bold text-cyan-400">🤖 AI Ustoz</span>
+            <Link href="/ai-teacher" className="text-sm font-bold text-cyan-400">🤖 AI Ustoz</Link>
           </div>
         </div>
       </nav>
 
       <div className="pt-24 pb-4 px-4 max-w-4xl mx-auto w-full flex-1 flex flex-col">
-        <div className="text-center mb-6 animate-fade-in">
+        <div className="text-center mb-6 fade-in">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 mb-3 glow-cyan">
             <Brain className="w-8 h-8 text-white" />
           </div>
@@ -101,7 +95,7 @@ export default function AITeacherPage() {
         </div>
 
         {messages.length === 0 ? (
-          <div className="glass-card p-6 mb-4 animate-fade-in">
+          <div className="cyber-card p-6 mb-4 fade-in">
             <h3 className="text-sm font-bold text-cyan-400 mb-3 flex items-center gap-2">
               <Sparkles className="w-4 h-4" /> Tezkor savollar:
             </h3>
@@ -118,7 +112,7 @@ export default function AITeacherPage() {
             </div>
           </div>
         ) : (
-          <div ref={scrollRef} className="flex-1 overflow-y-auto glass-card p-4 mb-4 space-y-4">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto cyber-card p-4 mb-4 space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
@@ -148,7 +142,7 @@ export default function AITeacherPage() {
           </div>
         )}
 
-        <div className="glass-card p-3 flex gap-2">
+        <div className="cyber-card p-3 flex gap-2">
           <input
             type="text"
             value={input}
