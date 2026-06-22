@@ -15,7 +15,7 @@ export async function GET() {
     });
 
     return NextResponse.json({ activity });
-  } catch {
+  } catch (error) {
     return NextResponse.json({ error: 'Server xatoligi' }, { status: 500 });
   }
 }
