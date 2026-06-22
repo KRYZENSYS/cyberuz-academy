@@ -1,94 +1,55 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, ArrowLeft, BookOpen, Brain, MessageCircle, Send, Loader2, CheckCircle2, Clock, Trophy, Lightbulb, FileText, Bookmark, BookmarkCheck } from 'lucide-react';
-import { getYouTubeId } from '@/lib/utils';
+import { Shield, Play, CheckCircle, Brain, Loader2, ArrowLeft, ArrowRight, Award, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-}
 
 export default function LessonPage() {
   const params = useParams();
   const lessonId = params.id as string;
   const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'notes' | 'transcript' | 'summary' | 'quiz'>('notes');
-  const [bookmarked, setBookmarked] = useState(false);
-  const [notes, setNotes] = useState('');
-
-  // AI Chat
+  const [completed, setCompleted] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchLesson();
   }, [lessonId]);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   const fetchLesson = async () => {
     try {
       const res = await fetch(`/api/lessons/${lessonId}`);
       const data = await res.json();
-      setLesson(data.lesson);
-    } catch (err) {
-      console.error(err);
+      if (res.ok) setLesson(data.lesson);
+      else toast.error(data.error);
+    } catch {
+      toast.error('Server xatoligi');
     } finally {
       setLoading(false);
     }
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || aiLoading) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setAiLoading(true);
-
+  const markComplete = async () => {
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await fetch(`/api/lessons/${lessonId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: input,
-          lessonTitle: lesson?.title,
-          courseTitle: lesson?.course?.title,
-          history: messages,
-        }),
+        body: JSON.stringify({ progress: 100, completed: true, watchTime: lesson?.duration || 0, courseId: lesson.courseId }),
       });
       const data = await res.json();
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response,
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (err) {
-      toast.error('AI javob berolmadi');
-    } finally {
-      setAiLoading(false);
+      if (res.ok) {
+        setCompleted(true);
+        setProgress(100);
+        if (data.xpResult) toast.success(`+${data.xpResult.xpAwarded} XP! 🎉`);
+      } else {
+        toast.error(data.error);
+      }
+    } catch {
+      toast.error('Tarmoq xatoligi');
     }
-  };
-
-  const toggleBookmark = async () => {
-    setBookmarked(!bookmarked);
-    toast.success(bookmarked ? 'Bookmark olib tashlandi' : 'Bookmark qilindi');
   };
 
   if (loading) {
@@ -102,257 +63,143 @@ export default function LessonPage() {
   if (!lesson) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">Dars topilmadi</p>
+        <div className="text-center">
+          <p className="text-gray-400 mb-4">Dars topilmadi</p>
+          <Link href="/courses" className="btn-neon text-sm">Kurslarga qaytish</Link>
+        </div>
       </div>
     );
   }
 
-  const videoUrl = lesson.video?.embedUrl;
-
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen">
       <nav className="fixed top-0 w-full z-50 glass-card border-b border-cyan-500/20">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
             <Shield className="w-7 h-7 text-cyan-400" />
             <span className="text-lg font-bold gradient-text">CyberUz Academy</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleBookmark}
-              className={`p-2 rounded-lg transition ${bookmarked ? 'text-yellow-400' : 'text-gray-400 hover:text-yellow-400'}`}
-            >
-              {bookmarked ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
-            </button>
-            <button
-              onClick={() => setChatOpen(!chatOpen)}
-              className="neon-button text-sm flex items-center gap-2"
-            >
-              <Brain className="w-4 h-4" /> CyberAI
-            </button>
-          </div>
+          <Link href={`/courses/${lesson.course?.slug}`} className="text-sm hover:text-cyan-400 flex items-center gap-1">
+            <ArrowLeft className="w-4 h-4" /> {lesson.course?.title}
+          </Link>
         </div>
       </nav>
 
-      <div className="pt-20 px-4 max-w-7xl mx-auto">
-        {/* Back button */}
-        <Link href={`/courses/${lesson.course?.slug}`} className="inline-flex items-center gap-2 text-cyan-400 hover:underline mb-4">
-          <ArrowLeft className="w-4 h-4" /> Kursga qaytish
-        </Link>
-
+      <div className="pt-20 pb-12 px-4 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Video */}
-            <div className="aspect-video w-full bg-black rounded-xl overflow-hidden glass-card">
-              {videoUrl ? (
+          <div className="lg:col-span-2">
+            {/* Video Player */}
+            <div className="aspect-video bg-cyber-black rounded-xl overflow-hidden border border-cyan-500/30 mb-4 relative">
+              {lesson.video?.youtubeId ? (
                 <iframe
-                  src={videoUrl}
+                  src={`https://www.youtube.com/embed/${lesson.video.youtubeId}?modestbranding=1&rel=0`}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500">
-                  <div className="text-center">
-                    <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>Video tez orada qo'shiladi</p>
-                  </div>
+                <div className="w-full h-full flex items-center justify-center">
+                  <Play className="w-20 h-20 text-cyan-400 opacity-50" />
                 </div>
               )}
             </div>
 
-            {/* Title */}
-            <div>
-              <h1 className="text-2xl md:text-3xl font-black mb-2">{lesson.title}</h1>
-              <p className="text-gray-400">{lesson.description}</p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {lesson.video?.duration && (
-                  <span className="badge badge-cyan">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {Math.floor(lesson.video.duration / 60)} daq
+            {/* Lesson Info */}
+            <div className="glass-card p-6 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="badge badge-cyan">{lesson.course?.title}</span>
+                {completed && <span className="badge badge-green">✓ Tugatilgan</span>}
+              </div>
+              <h1 className="text-2xl md:text-3xl font-bold mb-3">{lesson.title}</h1>
+              {lesson.description && <p className="text-gray-300 mb-4">{lesson.description}</p>}
+
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                  <span>Progress</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="h-2 bg-cyber-dark rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+
+              <button
+                onClick={markComplete}
+                disabled={completed}
+                className={`btn-neon w-full ${completed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {completed ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5" /> Dars tugatildi
                   </span>
+                ) : (
+                  '✓ Darsni tugatdim'
                 )}
-                <span className="badge badge-yellow">
-                  <Trophy className="w-3 h-3 mr-1" /> +10 XP
-                </span>
-              </div>
+              </button>
             </div>
 
-            {/* Tabs */}
-            <div className="glass-card overflow-hidden">
-              <div className="flex border-b border-cyan-500/20">
-                {[
-                  { id: 'notes', label: 'Qaydlar', icon: FileText },
-                  { id: 'transcript', label: 'Transcript', icon: BookOpen },
-                  { id: 'summary', label: 'AI Xulosa', icon: Lightbulb },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition ${
-                      activeTab === tab.id
-                        ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <tab.icon className="w-4 h-4" />
-                    <span className="text-sm">{tab.label}</span>
-                  </button>
-                ))}
+            {/* AI Teacher Button */}
+            <button
+              onClick={() => setChatOpen(!chatOpen)}
+              className="glass-card glass-card-hover w-full p-4 flex items-center justify-between mb-4"
+            >
+              <span className="flex items-center gap-3">
+                <Brain className="w-6 h-6 text-cyan-400" />
+                <span className="font-bold">CyberAI dan savol berish</span>
+              </span>
+              <MessageCircle className="w-5 h-5 text-gray-500" />
+            </button>
+
+            {chatOpen && (
+              <div className="glass-card p-4 mb-4">
+                <p className="text-sm text-gray-400 mb-3">Bu dars haqida AI dan tushuntirish so'rang:</p>
+                <Link
+                  href={`/ai-teacher?lesson=${encodeURIComponent(lesson.title)}&course=${encodeURIComponent(lesson.course?.title || '')}`}
+                  className="btn-neon w-full flex items-center justify-center gap-2"
+                >
+                  <Brain className="w-4 h-4" /> AI ga o'tish
+                </Link>
               </div>
-
-              <div className="p-6">
-                {activeTab === 'notes' && (
-                  <div>
-                    <h3 className="font-bold mb-3">Shaxsiy Qaydlaringiz</h3>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Bu dars bo'yicha qaydlaringizni yozing..."
-                      className="input-field min-h-[200px] resize-y"
-                    />
-                    <button
-                      onClick={() => toast.success('Qaydlar saqlandi')}
-                      className="neon-button mt-3 text-sm"
-                    >
-                      Saqlash
-                    </button>
-                  </div>
-                )}
-
-                {activeTab === 'transcript' && (
-                  <div>
-                    <h3 className="font-bold mb-3">Video Matni</h3>
-                    {lesson.video?.transcript ? (
-                      <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                        {lesson.video.transcript}
-                      </p>
-                    ) : (
-                      <p className="text-gray-500 italic">Transcript mavjud emas</p>
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'summary' && (
-                  <div>
-                    <h3 className="font-bold mb-3 flex items-center gap-2">
-                      <Lightbulb className="w-5 h-5 text-yellow-400" /> AI Xulosa
-                    </h3>
-                    <p className="text-gray-300 leading-relaxed">
-                      {lesson.description}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4">
-            <div className="glass-card p-4">
-              <h3 className="font-bold mb-3 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-400" /> Keyingi Darslar
-              </h3>
-              <div className="text-gray-400 text-sm">
-                Kursning boshqa darslari tez orada
-              </div>
-            </div>
-
-            <div className="glass-card p-4">
-              <h3 className="font-bold mb-3">Asosiy Tushunchalar</h3>
-              <div className="flex flex-wrap gap-2">
-                {(lesson.video?.tags || ['security', 'tutorial']).map((tag: string, i: number) => (
-                  <span key={i} className="badge badge-cyan text-xs">{tag}</span>
+          <div>
+            <div className="glass-card p-5 sticky top-20">
+              <h3 className="text-lg font-bold mb-4">Kurs darslari</h3>
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {lesson.course?.lessons?.map((l: any, i: number) => (
+                  <Link
+                    key={l.id}
+                    href={`/lessons/${l.id}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg transition ${
+                      l.id === lessonId ? 'bg-cyan-500/20 border border-cyan-500/50' : 'bg-cyber-black/50 hover:bg-cyber-black'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                      l.id === lessonId ? 'bg-cyan-500 text-white' : 'bg-cyber-dark text-gray-400'
+                    }`}>
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{l.title}</div>
+                      {l.duration > 0 && <div className="text-xs text-gray-500">{Math.floor(l.duration / 60)} daq</div>}
+                    </div>
+                    {l.id === lessonId && <Play className="w-4 h-4 text-cyan-400" />}
+                  </Link>
                 ))}
               </div>
-            </div>
 
-            <div className="glass-card p-4 bg-gradient-to-br from-cyan-500/10 to-yellow-500/10">
-              <Brain className="w-8 h-8 text-cyan-400 mb-2" />
-              <h3 className="font-bold mb-2">CyberAI bilan o'rganing</h3>
-              <p className="text-sm text-gray-400 mb-3">
-                Savollaringizga javob oling, qiyin mavzularni tushuntirishni so'rang
-              </p>
-              <button
-                onClick={() => setChatOpen(true)}
-                className="neon-button text-sm w-full"
-              >
-                Suhbatni Boshlash
-              </button>
+              {lesson.course?.lessons?.length > 0 && (
+                <Link href={`/courses/${lesson.course.slug}`} className="btn-outline w-full mt-4 text-center block text-sm py-2">
+                  Kurs sahifasiga o'tish
+                </Link>
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* AI Chat Modal */}
-      {chatOpen && (
-        <div className="fixed bottom-4 right-4 w-96 max-w-[calc(100vw-2rem)] glass-card border-cyan-500/40 shadow-2xl z-50 animate-slide-up">
-          <div className="flex items-center justify-between p-4 border-b border-cyan-500/20">
-            <div className="flex items-center gap-2">
-              <Brain className="w-5 h-5 text-cyan-400" />
-              <span className="font-bold">CyberAI O'qituvchi</span>
-            </div>
-            <button onClick={() => setChatOpen(false)} className="text-gray-400 hover:text-white">
-              ✕
-            </button>
-          </div>
-
-          <div className="h-96 overflow-y-auto p-4 space-y-3">
-            {messages.length === 0 && (
-              <div className="text-center text-gray-500 py-8">
-                <Brain className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Salom! Men CyberAI — kiberxavfsizlik o'qituvchisi</p>
-                <p className="text-xs mt-1">Savolingizni yozing 👇</p>
-              </div>
-            )}
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 text-sm ${
-                    msg.role === 'user'
-                      ? 'bg-gradient-to-br from-cyan-500 to-blue-500 text-white'
-                      : 'bg-cyber-dark text-gray-200 border border-cyan-500/20'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-            {aiLoading && (
-              <div className="flex justify-start">
-                <div className="bg-cyber-dark border border-cyan-500/20 rounded-lg p-3">
-                  <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          <div className="p-3 border-t border-cyan-500/20">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder="Savolingizni yozing..."
-                className="input-field text-sm"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={aiLoading || !input.trim()}
-                className="neon-button text-sm px-4 disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
