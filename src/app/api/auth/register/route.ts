@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerUser } from '@/lib/auth';
 import { sendEmail, welcomeEmailTemplate } from '@/lib/email';
-import { generateRandomToken } from '@/lib/jwt';
-import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +9,7 @@ export async function POST(req: NextRequest) {
 
     if (!email || !username || !password) {
       return NextResponse.json(
-        { error: 'Email, username va parol talab qilinadi' },
+        { success: false, error: 'Barcha maydonlarni to\'ldiring' },
         { status: 400 }
       );
     }
@@ -19,23 +17,15 @@ export async function POST(req: NextRequest) {
     const result = await registerUser({ email, username, password, fullName });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
 
-    // Generate email verification token
-    const verifyToken = generateRandomToken();
-    await prisma.user.update({
-      where: { id: result.user.id },
-      data: { emailVerifyToken: verifyToken },
-    });
-
     // Send welcome email
-    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${verifyToken}`;
     await sendEmail({
       to: email,
-      subject: 'CyberUz Academy — Xush kelibsiz!',
+      subject: '🛡️ CyberUz Academy ga xush kelibsiz!',
       html: welcomeEmailTemplate(fullName || username),
-    });
+    }).catch(console.error);
 
     // Set cookies
     const response = NextResponse.json({
@@ -45,8 +35,10 @@ export async function POST(req: NextRequest) {
         email: result.user.email,
         username: result.user.username,
         fullName: result.user.fullName,
+        role: result.user.role,
+        xp: result.user.xp,
+        level: result.user.level,
       },
-      accessToken: result.accessToken,
     });
 
     response.cookies.set('access_token', result.accessToken!, {
@@ -66,8 +58,11 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Register error:', error);
-    return NextResponse.json({ error: 'Server xatoligi' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Server xatosi' },
+      { status: 500 }
+    );
   }
 }
