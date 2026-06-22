@@ -6,16 +6,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const period = searchParams.get('period') || 'all';
 
-    const now = new Date();
-    let startDate = new Date(0);
-    if (period === 'week') {
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'month') {
-      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    }
-
     const users = await prisma.user.findMany({
-      where: { xp: { gt: 0 }, createdAt: { gte: startDate } },
+      where: { isBanned: false },
       orderBy: { xp: 'desc' },
       take: 100,
       select: {
@@ -24,12 +16,13 @@ export async function GET(req: NextRequest) {
         username: true,
         xp: true,
         level: true,
+        streak: true,
         avatar: true,
       },
     });
 
     return NextResponse.json({ users });
-  } catch {
+  } catch (error) {
     return NextResponse.json({ error: 'Server xatoligi' }, { status: 500 });
   }
 }
