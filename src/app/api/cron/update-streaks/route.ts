@@ -10,22 +10,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 
-    // Find users who were active yesterday but not today
     const users = await prisma.user.findMany({
       where: { streak: { gt: 0 } },
     });
 
     let updated = 0;
     for (const user of users) {
-      const lastActive = user.lastActiveAt;
-      if (!lastActive) continue;
-
-      if (lastActive < twoDaysAgo) {
-        // Reset streak
+      if (user.lastActiveAt && user.lastActiveAt < twoDaysAgo) {
         await prisma.user.update({
           where: { id: user.id },
           data: { streak: 0 },
