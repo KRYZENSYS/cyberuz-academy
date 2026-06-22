@@ -1,184 +1,181 @@
-'use client';
-
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Shield, Code, Lock, Zap, Brain, Trophy, BookOpen, Users, Award, Sparkles, ArrowRight, Github, Mail } from 'lucide-react';
+import { Shield, Brain, Trophy, BookOpen, Award, Zap, Users, Target, Lock, Code } from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+
+const features = [
+  { icon: Brain, title: 'AI O\'qituvchi', desc: 'CyberAI o\'zbek tilida darslarni tushuntiradi, savollarga javob beradi.' },
+  { icon: BookOpen, title: 'Bepul Darslar', desc: 'YouTube, OWASP, PortSwigger dan minglab bepul darslar.' },
+  { icon: Trophy, title: 'XP va Yutuqlar', desc: 'O\'rganing, ball to\'plang, yutuqlar qo\'lga kiriting.' },
+  { icon: Award, title: 'Sertifikatlar', desc: 'Kurslarni tugatib, QR-li sertifikat oling.' },
+  { icon: Zap, title: 'AI Roadmap', desc: 'Sizga moslashtirilgan o\'rganish rejasi.' },
+  { icon: Users, title: 'Jamiyat', desc: 'Forum va Telegram orqali boshqalar bilan muloqot.' },
+];
+
+const paths = [
+  { slug: 'cybersecurity-fundamentals', title: 'Kiberxavfsizlik Asoslari', level: 'Boshlang\'ich', color: 'green' },
+  { slug: 'linux-for-security', title: 'Linux Xavfsizlik Uchun', level: 'Boshlang\'ich', color: 'green' },
+  { slug: 'networking-basics', title: 'Tarmoq Asoslari', level: 'Boshlang\'ich', color: 'green' },
+  { slug: 'web-application-security', title: 'Veb Xavfsizlik', level: 'O\'rta', color: 'yellow' },
+  { slug: 'bug-bounty', title: 'Bug Bounty', level: 'O\'rta', color: 'yellow' },
+  { slug: 'soc-analyst', title: 'SOC Mutaxassisi', level: 'O\'rta', color: 'yellow' },
+  { slug: 'digital-forensics', title: 'Digital Forensics', level: 'Yuqori', color: 'orange' },
+  { slug: 'malware-analysis', title: 'Malware Analysis', level: 'Yuqori', color: 'orange' },
+  { slug: 'red-team', title: 'Red Team', level: 'Ekspert', color: 'red' },
+  { slug: 'blue-team', title: 'Blue Team', level: 'Ekspert', color: 'red' },
+];
+
+const stats = [
+  { value: '10+', label: 'O\'rganish yo\'li' },
+  { value: '500+', label: 'Bepul darslar' },
+  { value: 'AI', label: 'O\'qituvchi' },
+  { value: '100%', label: 'Bepul' },
+];
 
 export default function HomePage() {
-  const features = [
-    { icon: Brain, title: 'AI O\'qituvchi', desc: 'CyberAI sizga o\'zbek tilida darslik beradi, quiz yaratadi va savollaringizga javob beradi.', color: 'cyan' },
-    { icon: BookOpen, title: '10 ta O\'rganish Yo\'li', desc: 'Cybersecurity Fundamentals dan Red Team gacha — barcha yo\'nalishlar.', color: 'blue' },
-    { icon: Trophy, title: 'Gamification', desc: 'XP, darajalar, yutuqlar, haftalik musobaqalar va streak tizimi.', color: 'yellow' },
-    { icon: Award, title: 'Sertifikatlar', desc: 'Kurslarni tugatganingizda QR kodli PDF sertifikat qo\'lga kiritasiz.', color: 'cyan' },
-    { icon: Code, title: 'Bepul Darslar', desc: 'YouTube, OWASP, PortSwigger dan avtomatik topilgan bepul video darslar.', color: 'blue' },
-    { icon: Lock, title: 'Xavfsiz', desc: 'JWT autentifikatsiya, bcrypt parollar, email tasdiqlash.', color: 'yellow' },
-  ];
-
-  const stats = [
-    { value: '1000+', label: 'Bepul Video Darslar' },
-    { value: '10', label: 'O\'rganish Yo\'li' },
-    { value: '100%', label: 'Bepul' },
-    { value: '24/7', label: 'AI Yordam' },
-  ];
-
-  const paths = [
-    { icon: '🛡️', name: 'Cybersecurity Fundamentals', desc: 'Asoslardan boshlang' },
-    { icon: '🐧', name: 'Linux for Security', desc: 'Linux va xavfsizlik' },
-    { icon: '🌐', name: 'Networking Basics', desc: 'TCP/IP, DNS, HTTP' },
-    { icon: '🔐', name: 'Web Application Security', desc: 'OWASP Top 10' },
-    { icon: '💰', name: 'Bug Bounty', desc: 'Hunter bo\'ling' },
-    { icon: '🔍', name: 'SOC Analyst', desc: 'SOC markazda ishlash' },
-  ];
-
   return (
-    <main className="min-h-screen">
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 glass-card border-b border-cyan-500/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <Shield className="w-8 h-8 text-cyan-400" />
-            <span className="text-xl font-bold gradient-text">CyberUz Academy</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/courses" className="hover:text-cyan-400 transition">Kurslar</Link>
-            <Link href="/paths" className="hover:text-cyan-400 transition">Yo\'llar</Link>
-            <Link href="/ai-teacher" className="hover:text-cyan-400 transition">AI O\'qituvchi</Link>
-            <Link href="/leaderboard" className="hover:text-cyan-400 transition">Reyting</Link>
+    <>
+      <Navbar />
+      <main className="pt-24 pb-12">
+        {/* HERO */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full border border-cyan-500/30 bg-cyan-500/5">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span className="text-cyan-400 text-sm font-mono">v1.0.0 — Ochiq beta</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="px-4 py-2 text-sm hover:text-cyan-400 transition">Kirish</Link>
-            <Link href="/register" className="neon-button text-sm">Ro'yxatdan o'tish</Link>
-          </div>
-        </div>
-      </nav>
 
-      {/* Hero */}
-      <section className="relative pt-32 pb-20 px-4 grid-bg">
-        <div className="max-w-7xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full glass-card border-cyan-500/30">
-              <Sparkles className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm">AI-powered • 100% Bepul • O'zbek tilida</span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-black mb-6">
-              <span className="gradient-text">Kiberxavfsizlikni</span>
-              <br />
-              <span className="text-white neon-text">O'rganing</span>
-            </h1>
-            <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-10">
-              O'zbek tilidagi eng katta bepul kiberxavfsizlik platformasi.
-              AI yordamida har 6 soatda yangi darslar topiladi va tizimlashtiriladi.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register" className="neon-button inline-flex items-center justify-center gap-2">
-                Bepul Boshlash <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link href="/courses" className="neon-button neon-button-yellow inline-flex items-center justify-center gap-2">
-                <BookOpen className="w-5 h-5" /> Kurslarni Ko'rish
-              </Link>
-            </div>
-          </motion.div>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight">
+            <span className="gradient-text">Kiberxavfsizlikni</span>
+            <br />
+            <span className="neon-text">O'rganing Bepul</span>
+          </h1>
 
-          {/* Stats */}
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }} className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20">
-            {stats.map((stat, i) => (
-              <div key={i} className="glass-card p-6">
-                <div className="text-3xl md:text-4xl font-black gradient-text">{stat.value}</div>
-                <div className="text-sm text-gray-400 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+          <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
+            O'zbek tilidagi <span className="text-cyan-400 font-semibold">birinchi professional</span> kiberxavfsizlik platformasi.
+            AI yordamida <span className="text-yellow-400 font-semibold">avtomatik</span> darslar,
+            <span className="text-cyan-400 font-semibold">10 ta</span> o'rganish yo'li va sertifikatlar — <span className="text-yellow-400 font-bold">barchasi bepul</span>.
+          </p>
 
-      {/* Features */}
-      <section className="py-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-4">
-              <span className="gradient-text">Nima uchun</span> CyberUz Academy?
-            </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Zamonaviy AI texnologiyalar va professional ta\'lim metodikasi
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="glass-card glass-card-hover p-6 group"
-              >
-                <div className={`w-12 h-12 rounded-lg bg-${feature.color}-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
-                  <feature.icon className={`w-6 h-6 text-${feature.color}-400`} />
-                </div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-gray-400 text-sm">{feature.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Learning Paths */}
-      <section className="py-20 px-4 grid-bg">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-4">
-              <span className="gradient-text">O'rganish</span> Yo'llari
-            </h2>
-            <p className="text-gray-400">Boshlovchidan ekspertgacha — 10 ta yo'l</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paths.map((path, i) => (
-              <Link href="/paths" key={i}>
-                <div className="glass-card glass-card-hover p-6 cursor-pointer group">
-                  <div className="text-5xl mb-4">{path.icon}</div>
-                  <h3 className="text-lg font-bold mb-2 group-hover:text-cyan-400 transition">{path.name}</h3>
-                  <p className="text-gray-400 text-sm">{path.desc}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto glass-card p-12 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-yellow-500/10" />
-          <div className="relative">
-            <Zap className="w-16 h-16 text-yellow-400 mx-auto mb-6 animate-pulse" />
-            <h2 className="text-3xl md:text-5xl font-black mb-4">
-              Bugun o'rganishni <span className="gradient-text">boshlang</span>
-            </h2>
-            <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-              Minglab o'quvchilar bilan birga kiberxavfsizlikni bepul o'rganing.
-              AI sizga har bir qadamda yordam beradi.
-            </p>
-            <Link href="/register" className="neon-button inline-flex items-center gap-2">
-              Ro'yxatdan o'tish <ArrowRight className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <Link href="/register" className="btn-neon text-base px-8 py-4">
+              🚀 O'rganishni Boshlash
+            </Link>
+            <Link href="/courses" className="btn-outline text-base px-8 py-4">
+              Kurslarni Ko'rish
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="border-t border-cyan-500/20 py-8 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-cyan-400" />
-            <span className="font-bold gradient-text">CyberUz Academy</span>
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            {stats.map((stat) => (
+              <div key={stat.label} className="cyber-card text-center">
+                <div className="text-4xl md:text-5xl font-black gradient-text mb-2">{stat.value}</div>
+                <div className="text-sm text-gray-400">{stat.label}</div>
+              </div>
+            ))}
           </div>
-          <p className="text-gray-500 text-sm">© 2026 CyberUz Academy. Barcha huquqlar himoyalangan.</p>
-          <div className="flex gap-4">
-            <a href="https://github.com/KRYZENSYS/cyberuz-academy" className="hover:text-cyan-400 transition"><Github className="w-5 h-5" /></a>
-            <a href="mailto:info@cyberuz.academy" className="hover:text-cyan-400 transition"><Mail className="w-5 h-5" /></a>
+        </section>
+
+        {/* FEATURES */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              <span className="gradient-text">Nima uchun CyberUz?</span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              AI, gamification va professional kontent — hammasi bitta platformada
+            </p>
           </div>
-        </div>
-      </footer>
-    </main>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((f) => (
+              <div key={f.title} className="cyber-card group">
+                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <f.icon className="w-7 h-7 text-cyan-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">{f.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* LEARNING PATHS */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              <span className="gradient-text">O'rganish Yo'llari</span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Bosqichma-bosqich professional darajaga yeting
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paths.map((p) => (
+              <Link
+                key={p.slug}
+                href={`/courses/${p.slug}`}
+                className="cyber-card group cursor-pointer block"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <Target className="w-8 h-8 text-cyan-400 group-hover:rotate-12 transition-transform" />
+                  <span className={`badge badge-${p.color}`}>{p.level}</span>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
+                  {p.title}
+                </h3>
+                <div className="flex items-center text-cyan-400 text-sm font-medium">
+                  Boshlash <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* HOW IT WORKS */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="cyber-card">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              <span className="gradient-text">Qanday Ishlaydi?</span>
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[
+                { n: '01', title: 'Ro\'yxatdan o\'ting', desc: 'Bepul akkaunt yarating, 30 soniyada', icon: Shield },
+                { n: '02', title: 'Yo\'lni tanlang', desc: '10 ta yo\'ldan o\'zingizga mosini toping', icon: Target },
+                { n: '03', title: 'O\'rganing', desc: 'Video darslar, AI yordam, quiz', icon: Code },
+                { n: '04', title: 'Sertifikat oling', desc: 'Kurs tugagach QR-li PDF sertifikat', icon: Award },
+              ].map((s) => (
+                <div key={s.n} className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-2 border-cyan-500 flex items-center justify-center mx-auto mb-4">
+                    <s.icon className="w-7 h-7 text-cyan-400" />
+                  </div>
+                  <div className="text-cyan-400 font-mono text-sm mb-2">{s.n}</div>
+                  <h3 className="text-white font-bold mb-2">{s.title}</h3>
+                  <p className="text-gray-400 text-sm">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="cyber-card text-center neon-border pulse-glow">
+            <Lock className="w-16 h-16 text-yellow-400 mx-auto mb-6" />
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 gradient-text">
+              Kiberxavfsizlik Karyerangizni Boshlang
+            </h2>
+            <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+              Bugun ro'yxatdan o'ting va birinchi darsdan boshlang. Butunlay bepul.
+            </p>
+            <Link href="/register" className="btn-neon btn-neon-yellow text-base px-10 py-4 inline-block">
+              ⚡ Bepul Boshlash
+            </Link>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
   );
 }
