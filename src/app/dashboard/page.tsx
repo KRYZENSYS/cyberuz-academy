@@ -1,186 +1,215 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Shield, Trophy, Zap, BookOpen, TrendingUp, Clock, Award, Flame, ArrowRight, LogOut, Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { redirect } from 'next/navigation';
+import { Trophy, Flame, BookOpen, Award, Brain, Target, TrendingUp } from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { xpForNextLevel } from '@/lib/gamification';
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  if (!user) redirect('/login');
 
-  const fetchUser = async () => {
-    try {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      if (!data.user) {
-        router.push('/login');
-        return;
-      }
-      setUser(data.user);
-      setStats({
-        coursesEnrolled: 0,
-        lessonsCompleted: 0,
-        certificates: 0,
-        totalXp: data.user.xp,
-        streak: data.user.streak,
-      });
-    } catch (err) {
-      router.push('/login');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [progress, certificates, achievements, recentLessons, leaderboardPos] = await Promise.all([
+    prisma.userProgress.findMany({
+      where: { userId: user.id },
+      include: { course: true, lesson: true },
+      orderBy: { lastWatchedAt: 'desc' },
+      take: 5,
+    }),
+    prisma.certificate.findMany({
+      where: { userId: user.id },
+      include: { course: true },
+      take: 3,
+      orderBy: { issuedAt: 'desc' },
+    }),
+    prisma.userAchievement.findMany({
+      where: { userId: user.id, completed: true },
+      include: { achievement: true },
+      take: 6,
+      orderBy: { unlockedAt: 'desc' },
+    }),
+    prisma.lesson.findMany({
+      where: { isPublished: true },
+      include: { course: true, video: true },
+      take: 6,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.user.count({ where: { xp: { gt: user.xp }, isBanned: false } }),
+  ]);
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    toast.success('Tizimdan chiqdingiz');
-    router.push('/');
-    router.refresh();
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-cyan-400 animate-spin" />
-      </div>
-    );
-  }
-
-  const xpForNext = Math.pow(user.level, 2) * 100;
-  const xpProgress = ((user.xp % 100) / 100) * 100;
+  const nextLevelXP = xpForNextLevel(user.level);
+  const prevLevelXP = xpForNextLevel(user.level - 1);
+  const progressPercent = ((user.xp - prevLevelXP) / (nextLevelXP - prevLevelXP)) * 100;
 
   return (
-    <div className="min-h-screen">
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 glass-card border-b border-cyan-500/20">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <Shield className="w-7 h-7 text-cyan-400" />
-            <span className="text-lg font-bold gradient-text">CyberUz Academy</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/courses" className="hidden sm:block hover:text-cyan-400 transition text-sm">Kurslar</Link>
-            <Link href="/ai-teacher" className="hidden sm:block hover:text-cyan-400 transition text-sm">AI</Link>
-            <Link href="/profile" className="flex items-center gap-2 hover:opacity-80">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center font-bold text-sm">
-                {(user.fullName || user.username)?.[0]?.toUpperCase()}
-              </div>
-              <span className="hidden sm:block text-sm">{user.username}</span>
-            </Link>
-            <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 transition">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
-        {/* Welcome */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-3xl md:text-4xl font-black mb-2">
+    <>
+      <Navbar />
+      <main className="pt-24 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8 fade-in">
+          <h1 className="text-4xl md:text-5xl font-bold mb-2">
             Salom, <span className="gradient-text">{user.fullName || user.username}</span> 👋
           </h1>
-          <p className="text-gray-400">Bugun ham yangi bilim olish vaqti!</p>
+          <p className="text-gray-400">Bugun ham o'rganishni davom eting!</p>
         </div>
 
-        {/* Level & XP */}
-        <div className="glass-card p-6 mb-6 animate-slide-up">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-400">Daraja</div>
-                <div className="text-2xl font-black text-cyan-400">{user.level}</div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-400">Jami XP</div>
-              <div className="text-2xl font-black text-yellow-400">{user.xp.toLocaleString()}</div>
-            </div>
-          </div>
-          <div className="relative h-3 bg-cyber-black rounded-full overflow-hidden">
-            <div
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all"
-              style={{ width: `${Math.min(xpProgress, 100)}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Keyingi darajagacha: {xpForNext - user.xp} XP
-          </p>
-        </div>
-
-        {/* Stats Grid */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { icon: Flame, label: 'Streak', value: user.streak, color: 'yellow' },
-            { icon: BookOpen, label: 'Kurslar', value: stats?.coursesEnrolled || 0, color: 'cyan' },
-            { icon: Trophy, label: 'Yutuqlar', value: stats?.lessonsCompleted || 0, color: 'cyan' },
-            { icon: Award, label: 'Sertifikat', value: stats?.certificates || 0, color: 'yellow' },
-          ].map((stat, i) => (
-            <div key={i} className="glass-card glass-card-hover p-4">
-              <stat.icon className={`w-8 h-8 text-${stat.color}-400 mb-2`} />
-              <div className="text-2xl font-black">{stat.value}</div>
-              <div className="text-xs text-gray-400">{stat.label}</div>
+          <div className="cyber-card">
+            <div className="flex items-center justify-between mb-3">
+              <Trophy className="w-8 h-8 text-yellow-400" />
+              <span className="text-xs text-gray-500">XP</span>
             </div>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Link href="/courses">
-            <div className="glass-card glass-card-hover p-6 group">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-cyan-400" />
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition" />
+            <div className="text-3xl font-black text-yellow-400">{user.xp}</div>
+            <div className="mt-3">
+              <div className="text-xs text-gray-400 mb-1 flex justify-between">
+                <span>Daraja {user.level}</span>
+                <span>{user.xp}/{nextLevelXP}</span>
               </div>
-              <h3 className="text-xl font-bold mb-2">Kurslarni Davom Ettirish</h3>
-              <p className="text-gray-400 text-sm">Bepul kiberxavfsizlik kurslarini o'rganing</p>
-            </div>
-          </Link>
-
-          <Link href="/ai-teacher">
-            <div className="glass-card glass-card-hover p-6 group relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-yellow-500/5" />
-              <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-yellow-500 flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-white" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-yellow-400 group-hover:translate-x-1 transition" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">CyberAI O'qituvchi</h3>
-                <p className="text-gray-400 text-sm">Sun'iy intellekt bilan suhbatlashing</p>
+              <div className="h-2 bg-cyber-dark rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-500 to-yellow-400"
+                  style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                />
               </div>
             </div>
-          </Link>
+          </div>
+
+          <div className="cyber-card">
+            <div className="flex items-center justify-between mb-3">
+              <Flame className="w-8 h-8 text-orange-400" />
+              <span className="text-xs text-gray-500">Streak</span>
+            </div>
+            <div className="text-3xl font-black text-orange-400">{user.streak}</div>
+            <div className="text-xs text-gray-400 mt-3">kun ketma-ket</div>
+          </div>
+
+          <div className="cyber-card">
+            <div className="flex items-center justify-between mb-3">
+              <Award className="w-8 h-8 text-cyan-400" />
+              <span className="text-xs text-gray-500">Sertifikat</span>
+            </div>
+            <div className="text-3xl font-black text-cyan-400">{certificates.length}</div>
+            <div className="text-xs text-gray-400 mt-3">qo'lga kiritilgan</div>
+          </div>
+
+          <div className="cyber-card">
+            <div className="flex items-center justify-between mb-3">
+              <TrendingUp className="w-8 h-8 text-blue-400" />
+              <span className="text-xs text-gray-500">Reyting</span>
+            </div>
+            <div className="text-3xl font-black text-blue-400">#{leaderboardPos + 1}</div>
+            <div className="text-xs text-gray-400 mt-3">o'rindagi</div>
+          </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="glass-card p-6">
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-cyan-400" /> So'nggi Faollik
-          </h3>
-          <div className="text-center py-12 text-gray-500">
-            <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>Hozircha faollik yo'q</p>
-            <Link href="/courses" className="text-cyan-400 hover:underline text-sm">
-              Birinchi kursni boshlang →
-            </Link>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2 cyber-card">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-cyan-400" />
+              Davom Ettirish
+            </h2>
+            {progress.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <Target className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <p>Hozircha darslar boshlanmagan</p>
+                <Link href="/courses" className="btn-neon mt-4 inline-block text-sm">
+                  Kurslarni Ko'rish
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {progress.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={p.lessonId ? `/lessons/${p.lessonId}` : `/courses/${p.course.slug}`}
+                    className="block p-3 rounded-lg bg-cyber-black/50 hover:bg-cyber-black border border-transparent hover:border-cyan-500/30 transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="font-medium text-white">{p.course.title}</div>
+                      <span className="text-xs text-cyan-400">{p.progress}%</span>
+                    </div>
+                    {p.lesson && <div className="text-sm text-gray-400 mb-2">{p.lesson.title}</div>}
+                    <div className="h-1.5 bg-cyber-dark rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500" style={{ width: `${p.progress}%` }} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="cyber-card">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-yellow-400" />
+              Yutuqlar
+            </h2>
+            {achievements.length === 0 ? (
+              <div className="text-center py-8 text-gray-400 text-sm">
+                Yutuqlar hali yo'q
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                {achievements.map((ua) => (
+                  <div key={ua.id} className="text-center group">
+                    <div className="text-4xl mb-1 group-hover:scale-110 transition-transform">{ua.achievement.icon}</div>
+                    <div className="text-xs text-gray-400 truncate">{ua.achievement.title}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* AI Suggestion */}
+        <div className="cyber-card mb-8 neon-border-yellow">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+              <Brain className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-1">CyberAI tavsiya qiladi</h3>
+              <p className="text-gray-300 mb-3">Yangi darslarga tayyor bo'lasizmi? AI bilan suhbatlashing.</p>
+              <Link href="/ai-teacher" className="btn-neon text-sm py-2 px-5 inline-block">
+                AI bilan Suhbat
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Lessons */}
+        <div className="cyber-card">
+          <h2 className="text-2xl font-bold mb-4">Yangi Darslar</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentLessons.map((lesson) => (
+              <Link
+                key={lesson.id}
+                href={`/lessons/${lesson.id}`}
+                className="block group cursor-pointer"
+              >
+                <div className="aspect-video bg-cyber-black rounded-lg mb-3 overflow-hidden relative border border-cyan-500/20 group-hover:border-cyan-500/60 transition-colors">
+                  {lesson.video?.thumbnail ? (
+                    <img src={lesson.video.thumbnail} alt={lesson.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <BookOpen className="w-12 h-12 text-cyan-400/40" />
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-cyan-400 mb-1">{lesson.course.title}</div>
+                <div className="font-medium text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
+                  {lesson.title}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
   );
 }
