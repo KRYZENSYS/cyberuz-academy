@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email va parol talab qilinadi' },
+        { success: false, error: 'Email va parolni kiriting' },
         { status: 400 }
       );
     }
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const result = await loginUser({ email, password });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 401 });
+      return NextResponse.json({ success: false, error: result.error }, { status: 401 });
     }
 
     const response = NextResponse.json({
@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
         xp: result.user.xp,
         level: result.user.level,
       },
-      accessToken: result.accessToken,
     });
 
     response.cookies.set('access_token', result.accessToken!, {
@@ -50,8 +49,11 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Server xatoligi' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Server xatosi' },
+      { status: 500 }
+    );
   }
 }
