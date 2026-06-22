@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail, dailyPushTemplate } from '@/lib/email';
 import { chatWithAI } from '@/lib/ai';
+import { sendEmail, dailyPushTemplate } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -16,7 +16,6 @@ export async function GET(req: NextRequest) {
     const startTime = Date.now();
     let emailsSent = 0;
 
-    // Get users who want daily push
     const users = await prisma.user.findMany({
       where: {
         dailyPushEnabled: true,
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
       take: 500,
     });
 
-    // Get trending courses and news for personalization
     const [trendingCourses, recentNews] = await Promise.all([
       prisma.course.findMany({
         where: { isPublished: true },
@@ -42,10 +40,10 @@ export async function GET(req: NextRequest) {
 
     for (const user of users) {
       try {
-        // Generate personalized daily push via AI
-        const prompt = `Foydalanuvchi: ${user.fullName || user.username}, Daraja: ${user.level}, XP: ${user.xp}, Streak: ${user.streak}.
-Kiberxavfsizlik sohasida 1 ta qiziqarli fakt, 1 ta maslahat, 1 ta tavsiya. Qisqa, do'stona o'zbek tilida. Emoji ishlat.`;
-        const aiContent = await chatWithAI(prompt, { systemPrompt: 'Siz CyberUz Academy AI assistentisiz. Foydalanuvchiga kiberxavfsizlik bo\'yicha qisqa kundalik xabar yozing.' });
+        const prompt = `Foydalanuvchi: ${user.fullName || user.username}, Daraja: ${user.level}, XP: ${user.xp}, Streak: ${user.streak}. Kiberxavfsizlik bo'yicha 1 qiziqarli fakt, 1 maslahat, 1 tavsiya. Qisqa, do'stona o'zbek tilida. Emoji ishlat.`;
+        const aiContent = await chatWithAI(prompt, {
+          systemPrompt: "Siz CyberUz Academy AI assistentisiz. Foydalanuvchiga kiberxavfsizlik bo'yicha qisqa kundalik xabar yozing.",
+        });
 
         await sendEmail({
           to: user.email,
